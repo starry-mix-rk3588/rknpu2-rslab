@@ -5,3 +5,8 @@ edition.workspace = true
 authors.workspace = true
 
 [dependencies]
+
+
+[build-dependencies]
+anyhow = "1.0"
+bindgen = "0.72"
