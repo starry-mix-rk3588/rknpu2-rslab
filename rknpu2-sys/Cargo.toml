@@ -6,6 +6,8 @@ authors.workspace = true
 
 [dependencies]
 libloading = "0.8"
+ndarray = "0.16"
+
 
 [build-dependencies]
 anyhow = "1.0"

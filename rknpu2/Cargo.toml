@@ -6,3 +6,7 @@ authors.workspace = true
 
 [dependencies]
 rknpu2-sys = { path = "../rknpu2-sys" }
+image = "0.25.8"
+imageproc = "0.25.0"
+ndarray = "0.16"
+itertools = "0.14.0"
