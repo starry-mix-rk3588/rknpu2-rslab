@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["rknpu2", "rknpu2-sys"]
+
+[workspace.package]
+edition = "2024"
+authors = ["Debin Luo <luodeb@outlook.com>"]
+
+
