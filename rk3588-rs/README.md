@@ -77,27 +77,6 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-### Legacy C-style API
-
-For compatibility with existing C code, legacy functions are also available:
-
-```rust
-use rk3588_rs::{npu_open, npu_close, npu_reset, mem_allocate, mem_destroy};
-
-unsafe {
-    let fd = npu_open()?;
-    npu_reset(fd)?;
-    
-    let size = 1024;
-    let (ptr, dma_addr, obj_addr, handle) = mem_allocate(fd, size, 0)?;
-    
-    // Use the memory...
-    
-    mem_destroy(fd, handle, obj_addr)?;
-    npu_close(fd)?;
-}
-```
-
 ## Safety
 
 This library interacts directly with hardware and kernel drivers. While the high-level `NpuDevice` and `NpuMemory` types provide safe abstractions, some operations (like raw pointer manipulation for tasks) require `unsafe` code. Users should ensure:

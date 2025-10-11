@@ -85,20 +85,19 @@ pub fn run_matmul_test() -> io::Result<()> {
 
     // Open NPU device
     let npu = rk3588_rs::NpuDevice::open()?;
-    let fd = npu.as_raw_fd();
 
-    // Allocate memory
-    let (regcmd_ptr, regcmd_dma, regcmd_obj, regcmd_handle) = rk3588_rs::mem_allocate(fd, 1024, 0)?;
-    let (tasks_ptr, _tasks_dma, tasks_obj, tasks_handle) =
-        rk3588_rs::mem_allocate(fd, 1024, RKNPU_MEM_KERNEL_MAPPING)?;
-    let (input_ptr, input_dma, input_obj, input_handle) = rk3588_rs::mem_allocate(fd, 4096, 0)?;
-    let (weights_ptr, weights_dma, weights_obj, weights_handle) =
-        rk3588_rs::mem_allocate(fd, 4096, 0)?;
-    let (output_ptr, output_dma, output_obj, output_handle) = rk3588_rs::mem_allocate(fd, 4096, 0)?;
+    // Allocate memory using new Rust API
+    let mut regcmd_mem = npu.mem_allocate(1024, 0)?;
+    let tasks_mem = npu.mem_allocate(1024, RKNPU_MEM_KERNEL_MAPPING)?;
+    let mut input_mem = npu.mem_allocate(4096, 0)?;
+    let mut weights_mem = npu.mem_allocate(4096, 0)?;
+    let mut output_mem = npu.mem_allocate(4096, 0)?;
 
     println!(
         "Memory allocated: input_dma=0x{:x}, output_dma=0x{:x}, weights_dma=0x{:x}",
-        input_dma, output_dma, weights_dma
+        input_mem.dma_addr(),
+        output_mem.dma_addr(),
+        weights_mem.dma_addr()
     );
 
     // Reset NPU
@@ -110,9 +109,9 @@ pub fn run_matmul_test() -> io::Result<()> {
         m: M as u16,
         k: 64, // Padded K dimension
         n: N as u16,
-        input_dma: input_dma as u32,
-        weights_dma: weights_dma as u32,
-        output_dma: output_dma as u32,
+        input_dma: input_mem.dma_addr() as u32,
+        weights_dma: weights_mem.dma_addr() as u32,
+        output_dma: output_mem.dma_addr() as u32,
         tasks: npu_regs.as_mut_ptr(),
         fp32tofp16: 0, // Output as FP32
     };
@@ -124,23 +123,27 @@ pub fn run_matmul_test() -> io::Result<()> {
         )
     })?;
 
-    // Copy register commands
+    // Copy register commands to memory
+    let regcmd_slice = regcmd_mem.as_slice_mut();
     unsafe {
         std::ptr::copy_nonoverlapping(
             npu_regs.as_ptr() as *const u8,
-            regcmd_ptr,
+            regcmd_slice.as_mut_ptr(),
             std::mem::size_of_val(&npu_regs),
         );
     }
 
     // Initialize memory
-    unsafe {
-        std::ptr::write_bytes(input_ptr, 0, M * 64 * 2); // 2 bytes per f16
-        std::ptr::write_bytes(weights_ptr, 0, 64 * N * 2);
-        std::ptr::write_bytes(output_ptr, 0, M * N * 4); // 4 bytes per f32
-    }
+    let input_slice = input_mem.as_slice_mut();
+    let weights_slice = weights_mem.as_slice_mut();
+    let output_slice = output_mem.as_slice_mut();
+    
+    input_slice[..M * 64 * 2].fill(0);
+    weights_slice[..64 * N * 2].fill(0);
+    output_slice[..M * N * 4].fill(0);
 
     // Setup task structure
+    let tasks_ptr = tasks_mem.as_ptr();
     let tasks = unsafe { &mut *(tasks_ptr as *mut RknpuTask) };
     tasks.flags = 0;
     tasks.op_idx = 0;
@@ -150,9 +153,10 @@ pub fn run_matmul_test() -> io::Result<()> {
     tasks.int_status = 0;
     tasks.regcfg_amount = (npu_regs.len() as u32) - (RKNPU_PC_DATA_EXTRA_AMOUNT + 4);
     tasks.regcfg_offset = 0;
-    tasks.regcmd_addr = regcmd_dma;
+    tasks.regcmd_addr = regcmd_mem.dma_addr();
 
     // Fill weights (Matrix B) in FP16 format
+    let weights_ptr = weights_mem.as_ptr();
     let weights_fp16 = unsafe { std::slice::from_raw_parts_mut(weights_ptr as *mut f16, 64 * N) };
     for n in 1..=N {
         for k in 1..=K {
@@ -163,6 +167,7 @@ pub fn run_matmul_test() -> io::Result<()> {
     }
 
     // Fill input (Matrix A) in FP16 format
+    let input_ptr = input_mem.as_ptr();
     let input_fp16 = unsafe { std::slice::from_raw_parts_mut(input_ptr as *mut f16, M * 64) };
     for m in 1..=M {
         for k in 1..=K {
@@ -180,7 +185,7 @@ pub fn run_matmul_test() -> io::Result<()> {
         task_number: 1,
         task_counter: 0,
         priority: 0,
-        task_obj_addr: tasks_obj,
+        task_obj_addr: tasks_mem.obj_addr(),
         regcfg_obj_addr: 0,
         task_base_addr: 0,
         user_data: 0,
@@ -217,6 +222,7 @@ pub fn run_matmul_test() -> io::Result<()> {
     println!(
         "========================================================================================================="
     );
+    let output_ptr = output_mem.as_ptr();
     let output_data = unsafe { std::slice::from_raw_parts(output_ptr as *const f32, M * N) };
     let mut all_match = true;
 
@@ -241,12 +247,7 @@ pub fn run_matmul_test() -> io::Result<()> {
         "========================================================================================================="
     );
 
-    // Cleanup
-    rk3588_rs::mem_destroy(fd, regcmd_handle, regcmd_obj)?;
-    rk3588_rs::mem_destroy(fd, tasks_handle, tasks_obj)?;
-    rk3588_rs::mem_destroy(fd, input_handle, input_obj)?;
-    rk3588_rs::mem_destroy(fd, weights_handle, weights_obj)?;
-    rk3588_rs::mem_destroy(fd, output_handle, output_obj)?;
+    // Cleanup is automatic when NpuMemory objects are dropped
 
     if all_match {
         println!("\n✓ All results match expected values!");

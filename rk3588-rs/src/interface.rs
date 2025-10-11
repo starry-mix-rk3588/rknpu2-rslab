@@ -6,7 +6,7 @@ use nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::num::NonZeroUsize;
-use std::os::unix::io::{AsRawFd, BorrowedFd, RawFd};
+use std::os::unix::io::{AsRawFd, RawFd};
 use std::ptr::NonNull;
 
 /// NPU device handle
@@ -248,110 +248,4 @@ impl Drop for NpuMemory {
             }
         }
     }
-}
-
-/// Helper function to open the NPU device (legacy C-style API)
-pub fn npu_open() -> io::Result<RawFd> {
-    let device = NpuDevice::open()?;
-    Ok(device.as_raw_fd())
-}
-
-/// Helper function to close the NPU device (legacy C-style API)
-pub fn npu_close(fd: RawFd) -> io::Result<()> {
-    nix::unistd::close(fd)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("close failed: {}", e)))
-}
-
-/// Helper function to reset the NPU (legacy C-style API)
-pub fn npu_reset(fd: RawFd) -> io::Result<()> {
-    let mut action = RknpuActionStruct {
-        flags: RknpuAction::ActReset as u32,
-        value: 0,
-    };
-
-    unsafe {
-        drm_ioctl_rknpu_action(fd, &mut action).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("RKNPU_ACT_RESET failed: {}", e),
-            )
-        })?;
-    }
-
-    Ok(())
-}
-
-/// Helper function to allocate memory (legacy C-style API)
-pub fn mem_allocate(fd: RawFd, size: usize, flags: u32) -> io::Result<(*mut u8, u64, u64, u32)> {
-    let mut mem_create = RknpuMemCreate {
-        handle: 0,
-        flags: flags | RKNPU_MEM_NON_CACHEABLE,
-        size: size as u64,
-        obj_addr: 0,
-        dma_addr: 0,
-        sram_size: 0,
-    };
-
-    unsafe {
-        drm_ioctl_rknpu_mem_create(fd, &mut mem_create).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("RKNPU_MEM_CREATE failed: {}", e),
-            )
-        })?;
-    }
-
-    let mut mem_map = RknpuMemMap {
-        handle: mem_create.handle,
-        reserved: 0,
-        offset: 0,
-    };
-
-    unsafe {
-        drm_ioctl_rknpu_mem_map(fd, &mut mem_map).map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("RKNPU_MEM_MAP failed: {}", e))
-        })?;
-    }
-
-    let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
-    let map_ptr = unsafe {
-        mmap(
-            None,
-            NonZeroUsize::new(size).ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidInput, "Size cannot be zero")
-            })?,
-            ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
-            MapFlags::MAP_SHARED,
-            &borrowed_fd,
-            mem_map.offset as i64,
-        )
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("mmap failed: {}", e)))?
-    };
-
-    Ok((
-        map_ptr.as_ptr().cast::<u8>(),
-        mem_create.dma_addr,
-        mem_create.obj_addr,
-        mem_create.handle,
-    ))
-}
-
-/// Helper function to destroy memory (legacy C-style API)
-pub fn mem_destroy(fd: RawFd, handle: u32, obj_addr: u64) -> io::Result<()> {
-    let mut destroy = RknpuMemDestroy {
-        handle,
-        reserved: 0,
-        obj_addr,
-    };
-
-    unsafe {
-        drm_ioctl_rknpu_mem_destroy(fd, &mut destroy).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("RKNPU_MEM_DESTROY failed: {}", e),
-            )
-        })?;
-    }
-
-    Ok(())
 }
