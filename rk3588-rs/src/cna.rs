@@ -1,3 +1,8 @@
+#[cfg(not(feature = "no_std"))]
+use std::mem;
+#[cfg(feature = "no_std")]
+use core::mem;
+
 /// CNA (Convolution Neural Accelerator) descriptor
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -49,7 +54,7 @@ pub struct NpuCnaDesc {
 
 impl Default for NpuCnaDesc {
     fn default() -> Self {
-        unsafe { std::mem::zeroed() }
+        unsafe { mem::zeroed() }
     }
 }
 
@@ -66,7 +71,7 @@ pub struct NpuCoreDesc {
 
 impl Default for NpuCoreDesc {
     fn default() -> Self {
-        unsafe { std::mem::zeroed() }
+        unsafe { mem::zeroed() }
     }
 }
 
@@ -80,7 +85,7 @@ pub struct NpuPcDesc {
 
 impl Default for NpuPcDesc {
     fn default() -> Self {
-        unsafe { std::mem::zeroed() }
+        unsafe { mem::zeroed() }
     }
 }
 

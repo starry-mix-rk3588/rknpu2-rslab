@@ -1,3 +1,6 @@
+//! Device and memory interface for RK3588 NPU
+//! This module requires std feature (nix dependency)
+
 use crate::ioctl::*;
 use nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
 use std::fs::{File, OpenOptions};

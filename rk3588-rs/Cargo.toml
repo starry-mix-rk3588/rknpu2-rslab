@@ -6,9 +6,14 @@ authors = ["Translated from C by AI"]
 license = "GPL-3.0-or-later"
 description = "Rust bindings for RK3588 NPU hardware access"
 
+[features]
+default = ["std"]
+std = ["nix"]
+no_std = []
+
 [dependencies]
 libc = "0.2"
-nix = { version = "0.29", features = ["ioctl", "mman"] }
+nix = { version = "0.29", features = ["ioctl", "mman"], optional = true }
 
 [lib]
 name = "rk3588_rs"

@@ -2,6 +2,11 @@ use crate::cna::{NpuCnaDesc, NpuCoreDesc};
 use crate::dpu::NpuDpuDesc;
 use crate::hw::*;
 
+#[cfg(not(feature = "no_std"))]
+use std::slice;
+#[cfg(feature = "no_std")]
+use core::slice;
+
 /// Matrix multiplication parameters
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -430,7 +435,7 @@ pub fn gen_matmul_fp16(params: &mut MatmulParams) -> Result<(), i32> {
     // Safety: we're writing to a pointer provided by the caller
     // The caller must ensure the pointer is valid and has at least 112 u64 elements
     unsafe {
-        let ops_slice = std::slice::from_raw_parts_mut(params.tasks, 112);
+        let ops_slice = slice::from_raw_parts_mut(params.tasks, 112);
         gen_matmul_task(ops_slice, &cna_desc, &core_desc, &dpu_desc);
     }
 
@@ -581,7 +586,7 @@ pub fn gen_matmul_int8(params: &mut MatmulParams) -> Result<(), i32> {
     // Safety: we're writing to a pointer provided by the caller
     // The caller must ensure the pointer is valid and has at least 112 u64 elements
     unsafe {
-        let ops_slice = std::slice::from_raw_parts_mut(params.tasks, 112);
+        let ops_slice = slice::from_raw_parts_mut(params.tasks, 112);
         gen_matmul_task(ops_slice, &cna_desc, &core_desc, &dpu_desc);
     }
 

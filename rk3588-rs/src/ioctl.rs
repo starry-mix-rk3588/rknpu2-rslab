@@ -1,4 +1,7 @@
+#[cfg(not(feature = "no_std"))]
 use std::os::raw::c_int;
+#[cfg(feature = "no_std")]
+use core::ffi::c_int;
 
 // Register offsets
 pub const RKNPU_OFFSET_VERSION: u32 = 0x0;
@@ -205,6 +208,7 @@ pub const DRM_IOCTL_BASE: u8 = b'd';
 
 // Helper to construct IOCTL numbers
 // For DRM ioctls we use the nix::ioctl_readwrite! macro
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(
     drm_ioctl_rknpu_action,
     DRM_IOCTL_BASE,
@@ -212,6 +216,7 @@ nix::ioctl_readwrite!(
     RknpuActionStruct
 );
 
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(
     drm_ioctl_rknpu_submit,
     DRM_IOCTL_BASE,
@@ -219,6 +224,7 @@ nix::ioctl_readwrite!(
     RknpuSubmit
 );
 
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(
     drm_ioctl_rknpu_mem_create,
     DRM_IOCTL_BASE,
@@ -226,6 +232,7 @@ nix::ioctl_readwrite!(
     RknpuMemCreate
 );
 
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(
     drm_ioctl_rknpu_mem_map,
     DRM_IOCTL_BASE,
@@ -233,6 +240,7 @@ nix::ioctl_readwrite!(
     RknpuMemMap
 );
 
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(
     drm_ioctl_rknpu_mem_destroy,
     DRM_IOCTL_BASE,
@@ -240,6 +248,7 @@ nix::ioctl_readwrite!(
     RknpuMemDestroy
 );
 
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(
     drm_ioctl_rknpu_mem_sync,
     DRM_IOCTL_BASE,
@@ -263,4 +272,5 @@ pub struct DrmVersion {
 }
 
 // DRM_IOCTL_VERSION
+#[cfg(feature = "std")]
 nix::ioctl_readwrite!(drm_ioctl_version, DRM_IOCTL_BASE, 0x00, DrmVersion);

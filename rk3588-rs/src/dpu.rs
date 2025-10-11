@@ -1,3 +1,8 @@
+#[cfg(not(feature = "no_std"))]
+use std::mem;
+#[cfg(feature = "no_std")]
+use core::mem;
+
 /// DPU (Data Processing Unit) descriptor
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -41,6 +46,6 @@ pub struct NpuDpuDesc {
 
 impl Default for NpuDpuDesc {
     fn default() -> Self {
-        unsafe { std::mem::zeroed() }
+        unsafe { mem::zeroed() }
     }
 }
