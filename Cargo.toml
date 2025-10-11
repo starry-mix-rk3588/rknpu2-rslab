@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["rknpu2", "rknpu2-sys"]
+members = ["rknpu2", "rknpu2-sys", "rk3588-rs"]
 
 [workspace.package]
 edition = "2024"

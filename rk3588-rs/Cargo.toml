@@ -1,0 +1,15 @@
+[package]
+name = "rk3588-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Translated from C by AI"]
+license = "GPL-3.0-or-later"
+description = "Rust bindings for RK3588 NPU hardware access"
+
+[dependencies]
+libc = "0.2"
+nix = { version = "0.29", features = ["ioctl", "mman"] }
+
+[lib]
+name = "rk3588_rs"
+path = "src/lib.rs"

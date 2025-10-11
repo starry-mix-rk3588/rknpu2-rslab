@@ -6,7 +6,12 @@ authors.workspace = true
 
 [dependencies]
 rknpu2-sys = { path = "../rknpu2-sys" }
+rk3588-rs = { path = "../rk3588-rs" }
 image = "0.25.8"
 imageproc = "0.25.0"
 ndarray = "0.16"
 itertools = "0.14.0"
+nix = { version = "0.30.1", features = ["fs","ioctl"] }
+uapi = "0.2.13"
+bstr = { version = "1.9.0", default-features = false, features = ["std"] }
+half = "2.4"
