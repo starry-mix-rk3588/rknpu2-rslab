@@ -71,34 +71,12 @@ pub const RKNPU_JOB_MASK: u32 = RKNPU_JOB_PC
     | RKNPU_JOB_FENCE_IN
     | RKNPU_JOB_FENCE_OUT;
 
-// Action flags
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RknpuAction {
-    GetHwVersion = 0,
-    GetDrvVersion = 1,
-    GetFreq = 2,
-    SetFreq = 3,
-    GetVolt = 4,
-    SetVolt = 5,
-    ActReset = 6,
-    GetBwPriority = 7,
-    SetBwPriority = 8,
-    GetBwExpect = 9,
-    SetBwExpect = 10,
-    GetBwTw = 11,
-    SetBwTw = 12,
-    ActClrTotalRwAmount = 13,
-    GetDtWrAmount = 14,
-    GetDtRdAmount = 15,
-    GetWtRdAmount = 16,
-    GetTotalRwAmount = 17,
-    GetIommuEn = 18,
-    SetProcNice = 19,
-    PowerOn = 20,
-    PowerOff = 21,
-    GetTotalSramSize = 22,
-    GetFreeSramSize = 23,
+// Action 
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct RknpuAction {
+    pub flags: u32,
+    pub value: u32,
 }
 
 // User-desired buffer creation information structure
