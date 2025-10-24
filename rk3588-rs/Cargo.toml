@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 description = "Rust bindings for RK3588 NPU hardware access"
 
 [features]
-default = ["std"]
+default = ["no_std"]
 std = ["nix"]
 no_std = []
 
