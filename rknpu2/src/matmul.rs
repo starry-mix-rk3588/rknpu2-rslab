@@ -145,6 +145,16 @@ pub fn run_matmul_test() -> io::Result<()> {
     // Setup task structure
     let tasks_ptr = tasks_mem.as_ptr();
     let tasks = unsafe { &mut *(tasks_ptr as *mut RknpuTask) };
+    
+    // let flags = tasks.flags;
+    // let op_idx = tasks.op_idx;
+    // let enable_mask = tasks.enable_mask;
+    // let int_mask = tasks.int_mask;
+    // let int_clear = tasks.int_clear;
+    // let int_status = tasks.int_status;
+    // let regcfg_amount = tasks.regcfg_amount;
+
+    println!("=====> check kernel write val: {:#?}", tasks);
     tasks.flags = 0;
     tasks.op_idx = 0;
     tasks.enable_mask = 0xd;
@@ -185,7 +195,7 @@ pub fn run_matmul_test() -> io::Result<()> {
         task_number: 1,
         task_counter: 0,
         priority: 0,
-        task_obj_addr: tasks_mem.obj_addr(),
+        task_obj_addr: tasks_ptr as u64,
         regcfg_obj_addr: 0,
         task_base_addr: 0,
         user_data: 0,

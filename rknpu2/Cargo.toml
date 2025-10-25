@@ -5,5 +5,5 @@ edition.workspace = true
 authors.workspace = true
 
 [dependencies]
-rk3588-rs = { path = "../rk3588-rs" }
+rk3588-rs = { path = "../rk3588-rs", default-features = false, features = ["std"] }
 half = "2.4"

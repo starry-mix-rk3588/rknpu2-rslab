@@ -68,7 +68,7 @@ impl NpuDevice {
     /// Reset the NPU
     pub fn reset(&self) -> io::Result<()> {
         let mut action = RknpuActionStruct {
-            flags: RknpuAction::ActReset as u32,
+            flags: 6, // reset 6 
             value: 0,
         };
 
@@ -104,6 +104,8 @@ impl NpuDevice {
             })?;
         }
 
+        println!("===================== RknpuMemCreate :{:#?}", mem_create);
+
         let mut mem_map = RknpuMemMap {
             handle: mem_create.handle,
             reserved: 0,
@@ -115,6 +117,8 @@ impl NpuDevice {
                 io::Error::new(io::ErrorKind::Other, format!("RKNPU_MEM_MAP failed: {}", e))
             })?;
         }
+
+        println!("====================== RknpuMemMap: {:#?}", mem_map);
 
         let map_ptr = unsafe {
             mmap(
