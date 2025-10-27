@@ -1,15 +1,19 @@
 //! Device and memory interface for RK3588 NPU
 //! This module requires std feature (nix dependency)
 
+use std::{
+    cell::RefCell,
+    collections::HashSet,
+    fs::{File, OpenOptions},
+    io,
+    num::NonZeroUsize,
+    os::unix::io::{AsRawFd, RawFd},
+    ptr::NonNull,
+};
+
+use nix::sys::mman::{MapFlags, ProtFlags, mmap, munmap};
+
 use crate::ioctl::*;
-use nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::fs::{File, OpenOptions};
-use std::io;
-use std::num::NonZeroUsize;
-use std::os::unix::io::{AsRawFd, RawFd};
-use std::ptr::NonNull;
 
 /// NPU device handle
 pub struct NpuDevice {
@@ -74,7 +78,7 @@ impl NpuDevice {
     /// Reset the NPU
     pub fn reset(&self) -> io::Result<()> {
         let mut action = RknpuActionStruct {
-            flags: 6, // reset 6 
+            flags: 6, // reset 6
             value: 0,
         };
 
@@ -172,7 +176,9 @@ impl NpuDevice {
         }
 
         // Remove the resource from tracking
-        self.allocated_resources.borrow_mut().remove(&(handle, obj_addr));
+        self.allocated_resources
+            .borrow_mut()
+            .remove(&(handle, obj_addr));
 
         Ok(())
     }
@@ -199,12 +205,12 @@ impl Drop for NpuDevice {
                 reserved: 0,
                 obj_addr,
             };
-            
+
             unsafe {
                 let _ = drm_ioctl_rknpu_mem_destroy(self.as_raw_fd(), &mut destroy);
             }
         }
-        
+
         // File will be automatically closed when dropped
     }
 }
