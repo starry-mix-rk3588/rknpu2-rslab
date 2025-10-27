@@ -3,6 +3,8 @@
 
 use crate::ioctl::*;
 use nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::num::NonZeroUsize;
@@ -12,6 +14,7 @@ use std::ptr::NonNull;
 /// NPU device handle
 pub struct NpuDevice {
     file: File,
+    allocated_resources: RefCell<HashSet<(u32, u64)>>,
 }
 
 impl NpuDevice {
@@ -57,7 +60,10 @@ impl NpuDevice {
 
         println!("drm name is {} - {} - {}", name, date, desc);
 
-        Ok(NpuDevice { file })
+        Ok(NpuDevice {
+            file,
+            allocated_resources: RefCell::new(HashSet::new()),
+        })
     }
 
     /// Get the raw file descriptor
@@ -134,6 +140,11 @@ impl NpuDevice {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("mmap failed: {}", e)))?
         };
 
+        // Record the allocated resource
+        self.allocated_resources
+            .borrow_mut()
+            .insert((mem_create.handle, mem_create.obj_addr));
+
         Ok(NpuMemory {
             ptr: map_ptr.as_ptr().cast::<u8>(),
             size,
@@ -160,6 +171,9 @@ impl NpuDevice {
             })?;
         }
 
+        // Remove the resource from tracking
+        self.allocated_resources.borrow_mut().remove(&(handle, obj_addr));
+
         Ok(())
     }
 
@@ -177,6 +191,20 @@ impl NpuDevice {
 
 impl Drop for NpuDevice {
     fn drop(&mut self) {
+        // Clean up all remaining allocated resources
+        let resources = self.allocated_resources.borrow().clone();
+        for (handle, obj_addr) in resources {
+            let mut destroy = RknpuMemDestroy {
+                handle,
+                reserved: 0,
+                obj_addr,
+            };
+            
+            unsafe {
+                let _ = drm_ioctl_rknpu_mem_destroy(self.as_raw_fd(), &mut destroy);
+            }
+        }
+        
         // File will be automatically closed when dropped
     }
 }
